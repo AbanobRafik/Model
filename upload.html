@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Real-Time Face Recognition</title>
+  </head>
+  <body>
+    <h2>📡 Real-Time Face Recognition</h2>
+    <video id="video" width="320" height="240" autoplay></video>
+    <canvas id="canvas" width="320" height="240" style="display: none"></canvas>
+    <h3 id="result">Waiting...</h3>
+
+    <script>
+      const video = document.getElementById("video");
+      const canvas = document.getElementById("canvas");
+      const result = document.getElementById("result");
+
+      // Access camera
+      navigator.mediaDevices.getUserMedia({ video: true }).then((stream) => {
+        video.srcObject = stream;
+      });
+
+      // Function to send frame every second
+      async function sendFrame() {
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+        canvas.toBlob(async (blob) => {
+          const formData = new FormData();
+          formData.append("file", blob, "frame.jpg");
+
+          try {
+            const response = await fetch("http://127.0.0.1:8000/recognize/", {
+              method: "POST",
+              body: formData,
+            });
+            const data = await response.json();
+            result.innerText = data.name || data.error || "Face not recognized";
+          } catch (e) {
+            result.innerText = "Error contacting API";
+          }
+        }, "image/jpeg");
+      }
+
+      // Send frame every 1 second
+      setInterval(sendFrame, 1000);
+    </script>
+  </body>
+</html>
